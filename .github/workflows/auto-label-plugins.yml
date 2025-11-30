@@ -1,0 +1,45 @@
+name: Auto-label qol-tray plugins
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:        # Manual trigger
+
+jobs:
+  label-plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find and label plugin repos
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ORG="qol-tools"
+          TOPIC="qol-tray-plugin"
+          
+          echo "Scanning repos in $ORG for plugin.toml..."
+          
+          # Get all repos in org
+          repos=$(gh repo list "$ORG" --json name,repositoryTopics --limit 100)
+          
+          for repo in $(echo "$repos" | jq -r '.[].name'); do
+            # Skip the .github repo itself
+            if [[ "$repo" == ".github" ]]; then
+              continue
+            fi
+            
+            # Check if plugin.toml exists
+            if gh api "repos/$ORG/$repo/contents/plugin.toml" &>/dev/null; then
+              # Check if topic already exists
+              has_topic=$(echo "$repos" | jq -r ".[] | select(.name == \"$repo\") | .repositoryTopics[].name" | grep -c "^$TOPIC$" || true)
+              
+              if [[ "$has_topic" == "0" ]]; then
+                echo "Adding topic '$TOPIC' to $repo"
+                gh repo edit "$ORG/$repo" --add-topic "$TOPIC"
+              else
+                echo "Repo $repo already has topic"
+              fi
+            fi
+          done
+          
+          echo "Done."
+
