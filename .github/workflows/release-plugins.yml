@@ -19,6 +19,7 @@ jobs:
 
       - name: Release all plugins
         env:
+          GH_TOKEN: ${{ secrets.ORG_PAT }}
           GITHUB_TOKEN: ${{ secrets.ORG_PAT }}
         run: |
           ORG="qol-tools"
