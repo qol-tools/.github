@@ -1,6 +1,6 @@
 # qol-tools
 
-Organization-wide configuration and workflows.
+Organization-wide CI/CD workflows and shared standards.
 
 ## Workflows
 
@@ -8,16 +8,36 @@ Organization-wide configuration and workflows.
 
 Adds the `qol-tray-plugin` topic when a repo starting with `plugin-` is created.
 
-### Release plugins
+### Plugin version (reusable)
+
+Reusable workflow at `.github/workflows/plugin-version.yml` for per-repo version bumps.
+
+- Computes semver bump from conventional commits
+- Updates `Cargo.toml` and `plugin.toml`
+- Creates `chore(release): vX.Y.Z` commit
+- Pushes release tag `vX.Y.Z`
+- Exposes outputs: `should_release`, `version`, `bump`
+
+Caller repos use:
+
+```yaml
+jobs:
+  version:
+    permissions:
+      contents: write
+    uses: qol-tools/qol-cicd/.github/workflows/plugin-version.yml@main
+    with:
+      cargo_manifest: Cargo.toml
+      plugin_manifest: plugin.toml
+      tag_prefix: v
+```
+
+### Test standards
+
+Runs property tests for centralized standards in `standards/`.
+
+### Release plugins (legacy)
 
 Automatically releases all plugins with the `qol-tray-plugin` topic using semantic-release.
 
-- Scans all repos with the topic
-- Checks for unreleased commits (commits since last tag)
-- Runs semantic-release to bump version, update `plugin.toml`, create tag and GitHub release
-- Version bumps based on conventional commits:
-  - `fix:` → patch (0.0.x)
-  - `feat:` → minor (0.x.0)
-  - `<type>!:` or `BREAKING CHANGE:` in body → major (x.0.0)
-
-Runs on push to main.
+Runs on push to `main`.
