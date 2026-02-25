@@ -3,10 +3,12 @@
 `next_version.py` defines shared version bump semantics for QoL Tray repos.
 
 Rules:
-- release commits matching `chore(release): v...` are ignored for bump detection
-- any breaking change (`type(scope)!:` or `BREAKING CHANGE:` footer/body) bumps `major`
-- any `feat:` without breaking bumps `minor`
-- otherwise bump `patch`
+- only `feat`, `fix`, and `perf` commits trigger a release
+- `refactor`, `docs`, `chore`, `ci`, `style`, `test` are skipped (no version bump)
+- any breaking change (`type(scope)!:` or `BREAKING CHANGE:` footer/body) triggers a release regardless of prefix and bumps `major`
+- `feat:` without breaking bumps `minor`
+- `fix:` / `perf:` without breaking bump `patch`
+- release commits matching `chore(release): v...` are always ignored
 - if the computed tag already exists, increment patch until a free tag is found
 
 Run tests:
