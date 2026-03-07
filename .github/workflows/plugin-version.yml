@@ -158,8 +158,17 @@ jobs:
           VERSION: ${{ steps.compute.outputs.version }}
         run: |
           set -euo pipefail
+
+          old_version="$(awk -F'"' '/^version = "[^\"]+"/ {print $2; exit}' "${CARGO_MANIFEST}")"
           sed -i "0,/^version = \".*\"/s//version = \"${VERSION}\"/" "${CARGO_MANIFEST}"
           sed -i "0,/^version = \".*\"/s//version = \"${VERSION}\"/" "${PLUGIN_MANIFEST}"
+
+          manifest_dir="$(dirname "${CARGO_MANIFEST}")"
+          lockfile="${manifest_dir}/Cargo.lock"
+          if [[ -f "${lockfile}" ]]; then
+            pkg_name="$(awk -F'"' '/^name = "[^\"]+"/ {print $2; exit}' "${CARGO_MANIFEST}")"
+            sed -i "/^name = \"${pkg_name}\"/{n;s/^version = \"${old_version}\"/version = \"${VERSION}\"/}" "${lockfile}"
+          fi
 
       - name: Commit and tag
         if: steps.compute.outputs.should_release == 'true'
@@ -175,7 +184,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          manifest_dir="$(dirname "${CARGO_MANIFEST}")"
+          lockfile="${manifest_dir}/Cargo.lock"
+
           git add "${CARGO_MANIFEST}" "${PLUGIN_MANIFEST}"
+          if [[ -f "${lockfile}" ]]; then
+            git add "${lockfile}"
+          fi
 
           if git diff --cached --quiet; then
             if ! git rev-parse -q --verify "refs/tags/${TAG_PREFIX}${VERSION}" >/dev/null; then
